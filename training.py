@@ -12,7 +12,6 @@ from models.dataset import DiffusionDataset
 
 import wandb
 
-
 DATA_PATH = ""
 TRAINING_PATH = os.path.join(DATA_PATH, "TRAINING")
 VALIDATION_PATH = os.path.join(DATA_PATH, "VALIDATION")
@@ -25,13 +24,16 @@ lr = 0.0002
 beta1 = 0.5
 lambda_L1 = 100  # Weight for L1 loss term
 
+# Directory for saving checkpoints
+checkpoint_dir = "checkpoints"
+os.makedirs(checkpoint_dir, exist_ok=True)
 
 # Start a new wandb run to track this script.
 run = wandb.init(
     entity="simo_projects",
     project="DTI_GAN",
     config={
-        "learning_rate": 0.0002,
+        "learning_rate": lr,
         "architecture": "CNN",
         "dataset": "",
         "epochs": num_epochs,
@@ -140,6 +142,11 @@ for epoch in range(num_epochs):
     avg_val_loss_G = val_loss_G / num_val_batches
     avg_val_loss_D = val_loss_D / num_val_batches
     print(f"Epoch [{epoch+1}/{num_epochs}] Validation: Avg Loss_G: {avg_val_loss_G:.4f}, Avg Loss_D: {avg_val_loss_D:.4f}")
+    
+    # Save the generator and discriminator models at the end of the epoch.
+    torch.save(netG.state_dict(), os.path.join(checkpoint_dir, f'netG_epoch_{epoch+1}.pth'))
+    torch.save(netD.state_dict(), os.path.join(checkpoint_dir, f'netD_epoch_{epoch+1}.pth'))
 
 run.finish()
 print("Training complete.")
+
