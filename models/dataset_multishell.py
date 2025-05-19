@@ -6,7 +6,7 @@ import torch
 import torch.nn.functional as F
 from skimage.transform import resize
 import numpy as np
-from metadata_encoder import metadata_encoder  # Make sure this file is available
+from models.metadata_encoder import metadata_encoder  # Make sure this file is available
 
 class DiffusionDataset(Dataset):
     """
@@ -27,9 +27,9 @@ class DiffusionDataset(Dataset):
         self.resize_shape  = resize_shape
         self.norm          = norm
 
-        self.get_metadata = metadata_encoder(csv_path="/mnt/data/multishell_neighbors.csv")
+        self.get_metadata = metadata_encoder(csv_path='/data/people/jamesgrist/Desktop/multishell_all_directions/multishell_neighbors.csv')
 
-        pat_center = re.compile(r'^centered_([^_]+)_(\d{1,2})_(\d+)\.nii\.gz$')
+        pat_center = re.compile(r'^center_([^_]+)_(\d{1,2})_(\d+)\.nii\.gz$')
         pat_neighbor = re.compile(r'^neighbors_([^_]+)_(\d{1,2})_(\d+)\.nii\.gz$')
 
         center_map   = {}
@@ -62,7 +62,7 @@ class DiffusionDataset(Dataset):
     def __getitem__(self, idx):
         center_idx, patient_id, slice_idx, cpath, npath = self.samples[idx]
 
-        center_arr   = nib.load(cpath).get_fdata()
+        center_arr   = nib.load(cpath).get_fdata()  # shape: (H, W, 2)
         neighbor_arr = nib.load(npath).get_fdata()
 
         if self.transform:
@@ -83,35 +83,39 @@ class DiffusionDataset(Dataset):
                 neighbor_arr = neighbor_arr / 100
 
         elif self.norm == 'b0':
+        # --- Normalize neighbors relative to single-shell b0 (channel 3) ---
             b0_slice = neighbor_arr[:, :, 3]
             threshold = 1000
             binary_map = np.where(np.abs(b0_slice) < threshold, 0, 1)
-            b0_slice = b0_slice * binary_map 
+            b0_slice = b0_slice * binary_map
 
             for i in range(neighbor_arr.shape[2]):
                 if i == 3:
-                    neighbor_arr[:, :, i] = binary_map 
+                    neighbor_arr[:, :, i] = binary_map
                     continue
-
                 neighbor_arr[:, :, i] *= binary_map
                 np.divide(neighbor_arr[:, :, i], b0_slice, out=neighbor_arr[:, :, i], where=(b0_slice != 0))
 
-            b0_3d = np.expand_dims(b0_slice, axis=-1)
-            binary_map_3d = np.expand_dims(binary_map, axis=-1)
+        # --- Normalize center (multishell): channel 0 / channel 1, then discard b0 ---
+            center_img = center_arr[:, :, 0]
+            center_b0  = center_arr[:, :, 1]
 
-            center_arr *= binary_map_3d
-            condition_3d = np.expand_dims(b0_slice != 0, axis=-1)
-            np.divide(center_arr, b0_3d, out=center_arr, where=condition_3d)
+            binary_map_center = np.where(np.abs(center_b0) < threshold, 0, 1)
+            center_b0 = center_b0 * binary_map_center
+            center_img = center_img * binary_map_center
+            np.divide(center_img, center_b0, out=center_img, where=(center_b0 != 0))
 
-        # Decode image from center index
-        metadata_map = self.get_metadata(center_idx).detach().cpu().numpy()  # shape: [1, 128, 128]
-        metadata_map = (metadata_map - metadata_map.min()) / (metadata_map.max() - metadata_map.min() + 1e-8)  # normalize [0, 1]
+        # Now center_img is normalized; discard the b0 and keep only this
+            center_arr = center_img[:, :, np.newaxis]
+
+    # Metadata from center direction
+        metadata_map = self.get_metadata(center_idx).detach().cpu().numpy()
+        metadata_map = (metadata_map - metadata_map.min()) / (metadata_map.max() - metadata_map.min() + 1e-8)
 
         center_tensor = torch.tensor(center_arr, dtype=torch.float32).permute(2, 0, 1)
         neighbor_tensor = torch.tensor(neighbor_arr, dtype=torch.float32).permute(2, 0, 1)
 
         metadata_tensor = torch.tensor(metadata_map[0], dtype=torch.float32).unsqueeze(0)
-        neighbor_tensor = torch.cat([neighbor_tensor, metadata_tensor], dim=0)
 
         center_tensor = center_tensor.unsqueeze(0)
         neighbor_tensor = neighbor_tensor.unsqueeze(0)
@@ -135,5 +139,7 @@ class DiffusionDataset(Dataset):
 
         center_tensor = center_tensor.squeeze(0)
         neighbor_tensor = neighbor_tensor.squeeze(0)
+
+        neighbor_tensor = torch.cat([neighbor_tensor, metadata_tensor], dim=0)
 
         return neighbor_tensor, center_tensor

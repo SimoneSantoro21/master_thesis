@@ -31,8 +31,6 @@ class metadata_encoder(nn.Module):
         center_dir = ast.literal_eval(row["Center Direction"])
         neighbors_dirs = ast.literal_eval(row["Neighbors directions"])
         first_three = neighbors_dirs[:3]
-        while len(first_three) < 3:
-            first_three.append((0.0, 0.0, 0.0))  # pad
 
         flat_neighbors = [x for vec in first_three for x in vec]
         bval = row["Multi_Bval"]
