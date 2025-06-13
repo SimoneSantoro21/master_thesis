@@ -13,19 +13,18 @@ from hyperopt import fmin, tpe, hp, Trials, STATUS_OK
 from models.generator_128 import Unet_Generator 
 from models.discriminator_128 import PatchGAN_Discriminator
 from models.losses import GANLoss
-from models.dataset import DiffusionDataset
+from models.dataset_multishell import DiffusionDataset
 
 # Data paths.
-DATA_PATH = "/data/people/jamesgrist/Desktop/DTI_single_direction/dataset_center5_BET"
+DATA_PATH = "/data/people/jamesgrist/Desktop/multishell_all_directions"
 TRAINING_PATH = os.path.join(DATA_PATH, "TRAINING")
 VALIDATION_PATH = os.path.join(DATA_PATH, "VALIDATION")
 
 # Fixed hyperparameters.
-input_nc = 4
+input_nc = 5
 output_nc = 1
 beta1 = 0.5
 lambda_L1 = 100  # Weight for L1 loss term
-center_index = 5
 resize_shape = (128, 128)
 
 # Directory for saving checkpoints.
@@ -85,8 +84,8 @@ def objective(params):
     optimizer_D = optim.Adam(netD.parameters(), lr=lr, betas=(beta1, 0.999))
     
     # Create datasets and dataloaders.
-    train_dataset = DiffusionDataset(TRAINING_PATH, center_index=center_index, resize_shape=resize_shape)
-    val_dataset = DiffusionDataset(VALIDATION_PATH, center_index=center_index, resize_shape=resize_shape)
+    train_dataset = DiffusionDataset(TRAINING_PATH, resize_shape=resize_shape)
+    val_dataset = DiffusionDataset(VALIDATION_PATH, resize_shape=resize_shape)
     
     train_dataloader = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True, drop_last=True)
     val_dataloader = DataLoader(dataset=val_dataset, batch_size=batch_size, shuffle=True, drop_last=True)
@@ -151,8 +150,8 @@ def objective(params):
         tqdm.write(f"Trial {trial_id} Epoch {epoch+1}: Avg Generator Loss: {avg_val_loss_G:.4f}")
     
     # Save checkpoints for this trial with unique filenames.
-    netG_path = os.path.join(checkpoint_dir, f'netG_trial_{trial_id}.pth')
-    netD_path = os.path.join(checkpoint_dir, f'netD_trial_{trial_id}.pth')
+    netG_path = os.path.join(checkpoint_dir, f'netG_ms_trial_{trial_id}.pth')
+    netD_path = os.path.join(checkpoint_dir, f'netD_ms_trial_{trial_id}.pth')
     torch.save(netG.state_dict(), netG_path)
     torch.save(netD.state_dict(), netD_path)
     
