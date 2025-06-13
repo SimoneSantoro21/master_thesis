@@ -31,9 +31,9 @@ def merge_dataset(src_root: str, dst_root: str):
             print(f"Copied {len(files)} files → {dst_dir}")
 
 if __name__ == "__main__":
-    DST_ROOT = "dataset_center1_BET"
-    for index in range(25, 31):
-        SRC_ROOT = f"C:/Users/User/Downloads/dataset_center{index}_BET/dataset_center{index}_BET"
+    DST_ROOT = '/Volumes/SEAGATE BAS/DTI_data/multishell_b2600'
+    for index in range(1, 114):
+        SRC_ROOT = f"/Volumes/SEAGATE BAS/DTI_data/multishell_b2600_single_directions/dataset_ms_center{index}"
         print(f"Merging from `{SRC_ROOT}` into `{DST_ROOT}`…")
         merge_dataset(SRC_ROOT, DST_ROOT)
         print("Done.")

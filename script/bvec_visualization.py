@@ -1,15 +1,33 @@
-import numpy as np
+import numpy as np 
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+import matplotlib as mpl
 
-"""
-Script to visualize bves directions on unit sphere.
-This script computes reverse polarity vectors and plots them along the original ones.
-A solid angle is defined, and the number of directions laying within it is computed for each bvec.
-"""
+# ───────────────────────────────────────────────────────────────────────────────
+# LaTeX-style serif fonts (STIX) + bumped sizes
+mpl.rcParams.update({
+    # Font family / math text
+    "font.family":           "serif",
+    "font.serif":            ["STIXGeneral"],
+    "mathtext.fontset":      "stix",
+    "mathtext.rm":           "serif",
+    "mathtext.it":           "serif:italic",
+    "mathtext.bf":           "serif:bold",
+    # Base font size
+    "font.size":             16,
+    # Axes
+    "axes.titlesize":        20,
+    "axes.labelsize":        18,
+    # Ticks
+    "xtick.labelsize":       14,
+    "ytick.labelsize":       14,
+    # Legend
+    "legend.fontsize":       14,
+    "legend.title_fontsize": 16,
+})
 
-bvecs_single_shell = np.loadtxt('/Volumes/SEAGATE BAS/DTI_data/Dbs_080/Unnamed - 464/Converted_Nii_Files_1/6_ax_dti_b__1000_multiband.bvec')
-bvals_single_shell = np.loadtxt('/Volumes/SEAGATE BAS/DTI_data/Dbs_080/Unnamed - 464/Converted_Nii_Files_1/6_ax_dti_b__1000_multiband.bval')
+bvecs_single_shell = np.loadtxt('/Volumes/SEAGATE BAS/DTI_data/base_dataset/Dbs_001/Converted_Nii_Files_1/9_ax_dti_b__1000_multiband.bvec')
+bvals_single_shell = np.loadtxt('/Volumes/SEAGATE BAS/DTI_data/base_dataset/Dbs_001/Converted_Nii_Files_1/9_ax_dti_b__1000_multiband.bval')
 
 # Extract components for single-shell and computing reverse polarity vectors
 x_single, y_single, z_single = bvecs_single_shell
@@ -18,6 +36,7 @@ x_reverse, y_reverse, z_reverse = -x_single, -y_single, -z_single
 # Plot sphere for reference
 fig = plt.figure(figsize=(6, 6))
 ax = fig.add_subplot(111, projection='3d')
+ax.set_box_aspect([1, 1, 1])  # Set equal aspect ratio for x, y, z
 
 u = np.linspace(0, 2 * np.pi, 50)
 v = np.linspace(0, np.pi, 50)
@@ -27,10 +46,10 @@ Zs = np.outer(np.ones(np.size(u)), np.cos(v))
 ax.plot_surface(Xs, Ys, Zs, color='gray', alpha=0.1, edgecolor='none')
 
 # Plot single-shell points in green
-ax.scatter(x_single, y_single, z_single, color='g', marker='*', s=50, label='Single-Shell')
+ax.scatter(x_single, y_single, z_single, color='g', marker='o', s=20, label='Single-Shell bvecs')
 
 # Plot single-shell points with reverse polarity in red
-ax.scatter(x_reverse, y_reverse, z_reverse, color='r', marker='*', s=50, label='Reverse Polarity')
+#ax.scatter(x_reverse, y_reverse, z_reverse, color='r', marker='o', s=20, label='Negative Single-Shell bvecs')
 
 ax.legend()
 ax.set_xlabel('X')
